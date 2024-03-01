@@ -84,17 +84,40 @@ export function checkForIntersectingLines(points) {
   return false; // 没有相交的边
 }
 
-// function checkForIntersectingLines(points) {
-//   const n = points.length;
-//   for (let i = 0; i < n; i++) {
-//       for (let j = i + 2; j < n; j++) {
-//           if (i === 0 && j === n - 1) {
-//               continue; // 忽略闭合路径的首尾相连的情况
-//           }
-//           if (doLinesIntersect(points[i], points[(i + 1) % n], points[j], points[(j + 1) % n])) {
-//               return true; // 找到相交的线段
-//           }
-//       }
-//   }
-//   return false; // 没有找到相交的线段
-// }
+// 计算一个点到线段的最短距离
+function pointToLineDistance(p0, p1, p2) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const lineLengthSquared = dx * dx + dy * dy;
+
+  if (lineLengthSquared === 0) {
+    // p1 和 p2 重合时，直接计算 p0 到 p1 的距离
+    return Math.sqrt((p0.x - p1.x) ** 2 + (p0.y - p1.y) ** 2);
+  }
+
+  // 计算投影点 t 的参数值，它是 p0 在 p1p2 线段上的投影比例
+  let t = ((p0.x - p1.x) * dx + (p0.y - p1.y) * dy) / lineLengthSquared;
+  t = Math.max(0, Math.min(1, t)); // 限制 t 在 [0, 1] 范围内，确保投影点在线段上
+
+  // 计算投影点坐标
+  const projection = {
+    x: p1.x + t * dx,
+    y: p1.y + t * dy,
+  };
+
+  // 计算 p0 到投影点的距离
+  return Math.sqrt((p0.x - projection.x) ** 2 + (p0.y - projection.y) ** 2);
+}
+
+// 定义两个点表示的直线
+var linePoint1 = { x: 0, y: 0 };
+var linePoint2 = { x: 5, y: 0 };
+
+// 要检测的点
+var testPoint = { x: 10, y: 5 };
+
+console.log(
+  "pointDistanceToLine:",
+  pointToLineDistance(testPoint, linePoint1, linePoint2)
+  // distanceToLine(testPoint, slope, intercept)
+);

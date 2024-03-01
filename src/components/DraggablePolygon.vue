@@ -14,6 +14,7 @@ import {
   doLinesIntersect,
   pointInPolygon,
   checkForIntersectingLines,
+  // pointToLineDistance,
 } from "./geometry";
 
 console.log(
@@ -199,43 +200,59 @@ export default {
       }
 
       // 没有点击到多边形的角，判断是否点击在多边形内部，用于移动多边形
-      if (!this.draggingCornerPoint) {
-        console.log("check pointInPolygon");
-        for (
-          let polygonIndex = this.polygons.length - 1;
-          polygonIndex >= 0;
-          polygonIndex--
-        ) {
-          const polygon = this.polygons[polygonIndex];
-          if (pointInPolygon(polygon.points, x, y)) {
+      // if (!this.draggingCornerPoint) {
+      console.log("check pointInPolygon");
+      for (
+        let polygonIndex = this.polygons.length - 1;
+        polygonIndex >= 0;
+        polygonIndex--
+      ) {
+        const polygon = this.polygons[polygonIndex];
+        if (pointInPolygon(polygon.points, x, y)) {
+          if (
+            !this.draggingCornerPoint ||
+            (this.draggingCornerPoint &&
+              polygonIndex > this.draggedPolygonIndex)
+          ) {
+            // 新找到的点所在涂层在旧涂层之上，使用新的点
+            this.draggedPointIndex = null;
+            this.draggingCornerPoint = false;
+            this.originalPoints = [];
+
             this.draggedPolygonIndex = polygonIndex;
             this.draggingWholePolygon = true;
             break;
           }
         }
       }
+      // }
     },
     onMouseMove(e) {
+      const dx = e.offsetX - this.startX;
+      const dy = e.offsetY - this.startY;
       if (this.draggingCornerPoint) {
-        const x = e.offsetX,
-          y = e.offsetY;
+        // const x = e.offsetX;
+        // const y = e.offsetY;
+        const { x, y } =
+          this.polygons[this.draggedPolygonIndex].points[
+            this.draggedPointIndex
+          ];
         this.$set(
           this.polygons[this.draggedPolygonIndex].points,
           this.draggedPointIndex,
-          { x, y }
+          { x: x + dx, y: y + dy }
         );
         this.drawPolygons();
       } else if (this.draggingWholePolygon) {
-        const dx = e.offsetX - this.startX;
-        const dy = e.offsetY - this.startY;
         this.polygons[this.draggedPolygonIndex].points.forEach((point) => {
           point.x += dx;
           point.y += dy;
         });
-        this.startX = e.offsetX;
-        this.startY = e.offsetY;
+
         this.drawPolygons();
       }
+      this.startX = e.offsetX;
+      this.startY = e.offsetY;
     },
     onMouseUp() {
       // 拖动角，检测是否有线段相交，如果有则还原
