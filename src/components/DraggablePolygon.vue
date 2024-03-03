@@ -1,4 +1,9 @@
 <template>
+  <!-- 
+    1.拖动移动图形
+    2.拖动角修改图形
+    3.点击边，添加多边形的角
+ -->
   <div>
     <canvas
       ref="canvas"
@@ -14,7 +19,8 @@ import {
   doLinesIntersect,
   pointInPolygon,
   checkForIntersectingLines,
-  // pointToLineDistance,
+  pointToLineDistance,
+  getLineLength,
 } from "./geometry";
 
 console.log(
@@ -113,16 +119,22 @@ export default {
           ],
         },
       ],
+      ctx: null,
+      // 长按拖动角，改变多边形
       radius: 10,
       draggedPolygonIndex: null,
       draggingCornerPoint: false, // 移动角
       draggedPointIndex: null,
       originalPoints: [],
-      ctx: null,
       // 是否是拖动多边形
       draggingWholePolygon: false, // 移动整个图形
       startX: 0,
       startY: 0,
+      // 点击多边形的边添加点
+      addPoint: null,
+      addPointPolygonIndex: null,
+      addPointPrevIndex: null,
+      pointToLineMaxDistance: 4, // 点击的点到，边的最短距离，小于即可添加
     };
   },
   mounted() {
@@ -140,8 +152,9 @@ export default {
     drawPolygons() {
       const { ctx, polygons, radius } = this;
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      console.log({ polygons });
       polygons.forEach((polygon) => {
-        // console.log(polygon);
+        console.log(polygon);
         ctx.beginPath();
         ctx.moveTo(polygon.points[0].x, polygon.points[0].y);
         polygon.points.forEach((point, index) => {
@@ -175,8 +188,45 @@ export default {
       const y = e.offsetY;
       this.startX = x;
       this.startY = y;
-      // 逆序查找
-      // 判断是否点击多边形的角，用于改变多边形尺寸
+      // 后绘制的涂层在上面，逆序查找
+      // 一.点击多边形的边，添加点
+      for (
+        let polygonIndex = this.polygons.length - 1;
+        polygonIndex >= 0;
+        polygonIndex--
+      ) {
+        const polygon = this.polygons[polygonIndex];
+        const points = polygon.points;
+        for (let index = 0; index < points.length; index++) {
+          const point1 = points[index];
+          const point2 = points[(index + 1) % points.length];
+          const { distance, projection } = pointToLineDistance(
+            { x, y },
+            point1,
+            point2
+          );
+          // 距离小于pointToLineMaxDistance才可添加
+          if (distance < this.pointToLineMaxDistance) {
+            // 点击的点到线段的垂直点，距离线段两端的距离，小于pointToLineMaxDistance才可以添加
+            // 防止添加的点，距离线段两端太近
+            // 添加此判断，也可以避免，点击的点，距离多条边都符合要求的情况
+            if (
+              getLineLength(projection, point1) > this.pointToLineMaxDistance &&
+              getLineLength(projection, point2) > this.pointToLineMaxDistance
+            ) {
+              this.addPoint = projection;
+              this.addPointPolygonIndex = polygonIndex;
+              this.addPointPrevIndex = index;
+              // 找到了跳出第一层
+              break;
+            }
+          }
+        }
+        if (this.addPoint) {
+          break;
+        }
+      }
+      // 二.判断是否点击多边形的角，拖动用于改变多边形尺寸
       for (
         let polygonIndex = this.polygons.length - 1;
         polygonIndex >= 0;
@@ -199,7 +249,7 @@ export default {
         }
       }
 
-      // 没有点击到多边形的角，判断是否点击在多边形内部，用于移动多边形
+      // 三.判断是否点击在多边形内部，用于移动多边形
       // if (!this.draggingCornerPoint) {
       console.log("check pointInPolygon");
       for (
@@ -209,25 +259,50 @@ export default {
       ) {
         const polygon = this.polygons[polygonIndex];
         if (pointInPolygon(polygon.points, x, y)) {
-          if (
-            !this.draggingCornerPoint ||
-            (this.draggingCornerPoint &&
-              polygonIndex > this.draggedPolygonIndex)
-          ) {
-            // 新找到的点所在涂层在旧涂层之上，使用新的点
-            this.draggedPointIndex = null;
-            this.draggingCornerPoint = false;
-            this.originalPoints = [];
-
+          if (!this.draggingCornerPoint) {
+            // 前面没找到符合拖动的角，直接赋值用于拖动多边形
+            // 设置需要拖动的图形的index
             this.draggedPolygonIndex = polygonIndex;
             this.draggingWholePolygon = true;
             break;
+          } else {
+            // 前面找到了符合拖动的角，则需要判断两个图层的覆盖关系，图层索引大的在上面，优先级大
+            if (polygonIndex > this.draggedPolygonIndex) {
+              // 点击的点，符合拖动图片的要求，并且如果前面也符合拖动角的要求，则判断多边形的索引，保留大的
+              // 新找到的点所在涂层在旧涂层之上，使用新的点
+              this.draggedPointIndex = null;
+              this.draggingCornerPoint = false;
+              this.originalPoints = [];
+
+              // 设置需要拖动的图形的index
+              this.draggedPolygonIndex = polygonIndex;
+              this.draggingWholePolygon = true;
+              break;
+            } else {
+              // 找到的第一个符合要求的图层，索引已经小于，拖动角图层的索引，其他的不需要判断了，直接退出循环
+              break;
+            }
           }
         }
       }
       // }
+
+      if (this.draggingWholePolygon || this.draggingCornerPoint) {
+        console.log(this.addPointPolygonIndex, this.draggedPolygonIndex);
+        // 多种情况都符合的，需要判断图层优先级
+        // 防止被盖住的线也添加上点
+        if (this.addPointPolygonIndex < this.draggedPolygonIndex) {
+          this.addPoint = null;
+          this.addPointPolygonIndex = null;
+          this.addPointPrevIndex = null;
+        }
+      }
     },
     onMouseMove(e) {
+      this.addPoint = null;
+      this.addPointPolygonIndex = null;
+      this.addPointPrevIndex = null;
+
       const dx = e.offsetX - this.startX;
       const dy = e.offsetY - this.startY;
       if (this.draggingCornerPoint) {
@@ -255,16 +330,32 @@ export default {
       this.startY = e.offsetY;
     },
     onMouseUp() {
-      // 拖动角，检测是否有线段相交，如果有则还原
-      if (
-        this.draggingCornerPoint &&
-        checkForIntersectingLines(
-          this.polygons[this.draggedPolygonIndex].points
-        )
-      ) {
-        this.polygons[this.draggedPolygonIndex].points = this.originalPoints;
+      if (this.addPoint) {
+        console.log("addPoint", this.addPoint);
+        this.polygons[this.addPointPolygonIndex].points.splice(
+          this.addPointPrevIndex + 1,
+          0,
+          this.addPoint
+        );
         this.drawPolygons();
       }
+
+      // 拖动角，检测是否有线段相交，如果有则还原
+      if (!this.addPoint) {
+        if (
+          this.draggingCornerPoint &&
+          checkForIntersectingLines(
+            this.polygons[this.draggedPolygonIndex].points
+          )
+        ) {
+          this.polygons[this.draggedPolygonIndex].points = this.originalPoints;
+          this.drawPolygons();
+        }
+      }
+
+      this.addPoint = null;
+      this.addPointPolygonIndex = null;
+      this.addPointPrevIndex = null;
 
       this.originalPoints = [];
       this.draggingCornerPoint = false;

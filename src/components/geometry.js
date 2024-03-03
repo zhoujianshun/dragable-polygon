@@ -84,8 +84,13 @@ export function checkForIntersectingLines(points) {
   return false; // 没有相交的边
 }
 
+// 获取两个点组成的线段的长度
+export function getLineLength(p0, p1) {
+  return Math.sqrt((p0.x - p1.x) ** 2 + (p0.y - p1.y) ** 2);
+}
+
 // 计算一个点到线段的最短距离
-function pointToLineDistance(p0, p1, p2) {
+export function pointToLineDistance(p0, p1, p2) {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const lineLengthSquared = dx * dx + dy * dy;
@@ -106,7 +111,12 @@ function pointToLineDistance(p0, p1, p2) {
   };
 
   // 计算 p0 到投影点的距离
-  return Math.sqrt((p0.x - projection.x) ** 2 + (p0.y - projection.y) ** 2);
+  return {
+    projection: projection, // 投影点坐标
+    distance: Math.sqrt(
+      (p0.x - projection.x) ** 2 + (p0.y - projection.y) ** 2
+    ),
+  };
 }
 
 // 定义两个点表示的直线

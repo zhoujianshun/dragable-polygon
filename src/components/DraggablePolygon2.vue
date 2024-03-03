@@ -1,4 +1,8 @@
 <template>
+  <!-- 
+    1.拖动移动图形
+    2.拖动角修改图形
+ -->
   <div>
     <canvas
       ref="canvas"
