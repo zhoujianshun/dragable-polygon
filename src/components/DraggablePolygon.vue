@@ -6,6 +6,7 @@
  -->
   <div>
     <canvas
+      @contextmenu.prevent="onContextmenu"
       ref="canvas"
       width="800"
       height="600"
@@ -284,6 +285,77 @@ export default {
       //     this.addPointPrevIndex = null;
       //   }
       // }
+    },
+    onContextmenu(event) {
+      // 检测右击区域
+      // 1.点击在角上，删除角上的点
+      // 2.点击在图形上，弹出删除菜单
+      const x = event.offsetX;
+      const y = event.offsetY;
+      for (
+        let polygonIndex = this.polygons.length - 1;
+        polygonIndex >= 0;
+        polygonIndex--
+      ) {
+        const polygon = this.polygons[polygonIndex];
+
+        // 一.判断是否可以删除点
+        let draggedPolygonIndex = null;
+        let draggedPointIndex = null;
+        const r = polygon.points.some((point, pointIndex) => {
+          if (this.pointHitTest(point, x, y)) {
+            draggedPolygonIndex = polygonIndex;
+            draggedPointIndex = pointIndex;
+            return true;
+          }
+          return false;
+        });
+        //
+        if (r && polygon.points.length > 3) {
+          this.$contextmenu({
+            items: [
+              {
+                label: "删除锚点",
+                onClick: () => {
+                  this.polygons[draggedPolygonIndex].points.splice(
+                    draggedPointIndex,
+                    1
+                  );
+                  this.drawPolygons();
+                },
+              },
+            ],
+            event,
+            customClass: "custom-class",
+            zIndex: 3,
+            minWidth: 230,
+          });
+          break;
+        }
+        // 二.判断是否删除图形
+        if (pointInPolygon(polygon.points, x, y)) {
+          // 前面没找到符合拖动的角，直接赋值用于拖动多边形
+          // 设置需要拖动的图形的index
+          draggedPolygonIndex = polygonIndex;
+          this.$contextmenu({
+            items: [
+              {
+                label: "删除图形",
+                onClick: () => {
+                  console.log("删除", draggedPolygonIndex);
+                  this.polygons.splice(draggedPolygonIndex, 1);
+                  this.drawPolygons();
+                },
+              },
+            ],
+            event,
+            customClass: "custom-class",
+            zIndex: 3,
+            minWidth: 230,
+          });
+          break;
+        }
+      }
     },
   },
   beforeDestroy() {
