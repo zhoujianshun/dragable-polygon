@@ -50,9 +50,9 @@ export default {
         },
       ],
       ctx: null,
+      selectedPolygonIndex: null, // 选中的polygon的index
       // 长按拖动角，改变多边形
       radius: 10,
-      draggedPolygonIndex: null,
       draggingCornerPoint: false, // 移动角
       draggedPointIndex: null,
       originalPoints: [],
@@ -83,7 +83,8 @@ export default {
       const { ctx, polygons, radius } = this;
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       console.log({ polygons });
-      polygons.forEach((polygon) => {
+      polygons.forEach((polygon, index) => {
+        const selected = index === this.selectedPolygonIndex;
         console.log(polygon);
         ctx.beginPath();
         ctx.moveTo(polygon.points[0].x, polygon.points[0].y);
@@ -95,8 +96,8 @@ export default {
         ctx.closePath();
         ctx.fillStyle = "lightblue";
         ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "blue";
+        ctx.lineWidth = selected ? 4 : 2;
+        ctx.strokeStyle = selected ? "red" : "blue";
         ctx.stroke();
 
         polygon.points.forEach((point) => {
@@ -147,17 +148,17 @@ export default {
         // const x = e.offsetX;
         // const y = e.offsetY;
         const { x, y } =
-          this.polygons[this.draggedPolygonIndex].points[
+          this.polygons[this.selectedPolygonIndex].points[
             this.draggedPointIndex
           ];
         this.$set(
-          this.polygons[this.draggedPolygonIndex].points,
+          this.polygons[this.selectedPolygonIndex].points,
           this.draggedPointIndex,
           { x: x + dx, y: y + dy }
         );
         this.drawPolygons();
       } else if (this.draggingWholePolygon) {
-        this.polygons[this.draggedPolygonIndex].points.forEach((point) => {
+        this.polygons[this.selectedPolygonIndex].points.forEach((point) => {
           point.x += dx;
           point.y += dy;
         });
@@ -175,6 +176,8 @@ export default {
           0,
           this.addPoint
         );
+        // 如果添加点，则选中当前图形
+        this.selectedPolygonIndex = this.addPointPolygonIndex;
         this.drawPolygons();
       }
 
@@ -183,11 +186,11 @@ export default {
         if (
           this.draggingCornerPoint &&
           checkForIntersectingLines(
-            this.polygons[this.draggedPolygonIndex].points
+            this.polygons[this.selectedPolygonIndex].points
           )
         ) {
           // 新的图形存在相交的线段，还原
-          this.polygons[this.draggedPolygonIndex].points = this.originalPoints;
+          this.polygons[this.selectedPolygonIndex].points = this.originalPoints;
           this.drawPolygons();
         }
       }
@@ -233,7 +236,7 @@ export default {
     searchMovePoint(polygon, x, y, polygonIndex) {
       return polygon.points.some((point, pointIndex) => {
         if (this.pointHitTest(point, x, y)) {
-          this.draggedPolygonIndex = polygonIndex;
+          this.selectedPolygonIndex = polygonIndex;
           this.draggedPointIndex = pointIndex;
           this.draggingCornerPoint = true;
           // 保存原始坐标，用于出措时恢复
@@ -249,7 +252,6 @@ export default {
       this.startX = x;
       this.startY = y;
       // 后绘制的涂层在上面，逆序查找
-
       for (
         let polygonIndex = this.polygons.length - 1;
         polygonIndex >= 0;
@@ -269,17 +271,25 @@ export default {
         if (pointInPolygon(polygon.points, x, y)) {
           // 前面没找到符合拖动的角，直接赋值用于拖动多边形
           // 设置需要拖动的图形的index
-          this.draggedPolygonIndex = polygonIndex;
+          this.selectedPolygonIndex = polygonIndex;
           this.draggingWholePolygon = true;
           break;
         }
       }
+      // 表示有选中的图形，重绘，显示选中的样式
+      if (
+        this.selectedPolygonIndex !== null &&
+        this.selectedPolygonIndex !== undefined
+      ) {
+        console.log("redraw selectedPolygonIndex:", this.selectedPolygonIndex);
+        this.drawPolygons();
+      }
 
       // if (this.draggingWholePolygon || this.draggingCornerPoint) {
-      //   console.log(this.addPointPolygonIndex, this.draggedPolygonIndex);
+      //   console.log(this.addPointPolygonIndex, this.selectedPolygonIndex);
       //   // 多种情况都符合的，需要判断图层优先级
       //   // 防止被盖住的线也添加上点
-      //   if (this.addPointPolygonIndex < this.draggedPolygonIndex) {
+      //   if (this.addPointPolygonIndex < this.selectedPolygonIndex) {
       //     this.addPoint = null;
       //     this.addPointPolygonIndex = null;
       //     this.addPointPrevIndex = null;
