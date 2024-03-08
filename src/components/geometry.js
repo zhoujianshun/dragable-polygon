@@ -75,7 +75,7 @@ export function checkForIntersectingLines(points) {
       if (i === 0 && j === length - 1) {
         continue; // 忽略闭合路径的首尾相连的情况
       }
-      console.log(`${i} ${j} ${doLinesIntersect(line1, line2)}`);
+      // console.log(`${i} ${j} ${doLinesIntersect(line1, line2)}`);
       if (doLinesIntersect(line1, line2)) {
         return true; // 有相交的边
       }

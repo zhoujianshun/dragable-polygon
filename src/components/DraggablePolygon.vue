@@ -25,30 +25,34 @@ import {
 
 export default {
   name: "DraggablePolygon",
+  props: {
+    polygons: {
+      type: Array,
+      default: undefined,
+    },
+    canvasWidth: {
+      type: Number,
+      default: undefined,
+    },
+    canvasHeight: {
+      type: Number,
+      default: undefined,
+    },
+    strokeColor: {
+      type: String,
+      default: "#1890ff",
+    },
+    lineWidth: {
+      type: Number,
+      default: 2,
+    },
+    lineDash: {
+      type: Array,
+      default: () => [0, 0],
+    },
+  },
   data() {
     return {
-      polygons: [
-        {
-          points: [
-            { x: 100, y: 100 },
-            { x: 200, y: 100 },
-            { x: 250, y: 200 },
-            { x: 200, y: 300 },
-            { x: 100, y: 300 },
-            { x: 50, y: 200 },
-          ],
-        },
-        {
-          points: [
-            { x: 300, y: 100 },
-            { x: 400, y: 100 },
-            { x: 450, y: 200 },
-            { x: 400, y: 300 },
-            { x: 300, y: 300 },
-            { x: 250, y: 200 },
-          ],
-        },
-      ],
       ctx: null,
       selectedPolygonIndex: null, // 选中的polygon的index
       // 长按拖动角，改变多边形
@@ -71,6 +75,12 @@ export default {
     this.initCanvas();
     this.drawPolygons();
   },
+  watch: {
+    polygons() {
+      console.log("watch polygons");
+      this.drawPolygons();
+    },
+  },
   methods: {
     initCanvas() {
       const canvas = this.$refs.canvas;
@@ -82,10 +92,10 @@ export default {
     drawPolygons() {
       const { ctx, polygons, radius } = this;
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      console.log({ polygons });
+      // console.log({ polygons });
       polygons.forEach((polygon, index) => {
         const selected = index === this.selectedPolygonIndex;
-        console.log(polygon);
+        // console.log(polygon);
         ctx.beginPath();
         ctx.moveTo(polygon.points[0].x, polygon.points[0].y);
         polygon.points.forEach((point, index) => {
@@ -171,11 +181,9 @@ export default {
     onMouseUp() {
       if (this.addPoint) {
         console.log("addPoint", this.addPoint);
-        this.polygons[this.addPointPolygonIndex].points.splice(
-          this.addPointPrevIndex + 1,
-          0,
-          this.addPoint
-        );
+        const polygon = this.polygons[this.addPointPolygonIndex];
+        polygon.points.splice(this.addPointPrevIndex + 1, 0, this.addPoint);
+        this.$emit("update:polygons", this.polygons);
         // 如果添加点，则选中当前图形
         this.selectedPolygonIndex = this.addPointPolygonIndex;
         this.drawPolygons();
@@ -190,7 +198,9 @@ export default {
           )
         ) {
           // 新的图形存在相交的线段，还原
-          this.polygons[this.selectedPolygonIndex].points = this.originalPoints;
+          const curPolygon = this.polygons[this.selectedPolygonIndex];
+          curPolygon.points = this.originalPoints;
+          this.$emit("update:polygons", this.polygons);
           this.drawPolygons();
         }
       }
@@ -281,7 +291,7 @@ export default {
         this.selectedPolygonIndex !== null &&
         this.selectedPolygonIndex !== undefined
       ) {
-        console.log("redraw selectedPolygonIndex:", this.selectedPolygonIndex);
+        // console.log("redraw selectedPolygonIndex:", this.selectedPolygonIndex);
         this.drawPolygons();
       }
 
@@ -327,10 +337,9 @@ export default {
               {
                 label: "删除锚点",
                 onClick: () => {
-                  this.polygons[draggedPolygonIndex].points.splice(
-                    draggedPointIndex,
-                    1
-                  );
+                  const polygon = this.polygons[draggedPolygonIndex];
+                  polygon.points.splice(draggedPointIndex, 1);
+                  this.$emit("update:polygons", this.polygons);
                   this.drawPolygons();
                 },
               },
@@ -353,7 +362,9 @@ export default {
                 label: "删除图形",
                 onClick: () => {
                   console.log("删除", draggedPolygonIndex);
-                  this.polygons.splice(draggedPolygonIndex, 1);
+                  const newList = this.polygons;
+                  newList.splice(draggedPolygonIndex, 1);
+                  this.$emit("update:polygons", newList);
                   this.drawPolygons();
                 },
               },

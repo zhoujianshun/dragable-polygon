@@ -5,7 +5,11 @@
       :canvasWidth="600"
       :canvasHeight="600"
     ></PolygonCanvas>
-    <DraggablePolygon></DraggablePolygon>
+    <button @click="onAdd">添加</button>
+    <DraggablePolygon
+      :polygons="polygons"
+      @update:polygons="onUpdatePolygons"
+    ></DraggablePolygon>
     <DraggablePolygon2></DraggablePolygon2>
   </div>
 </template>
@@ -52,6 +56,29 @@ export default {
         },
       ],
     };
+  },
+  methods: {
+    onUpdatePolygons() {
+      console.log("onUpdatePolygons");
+    },
+    onAdd() {
+      this.polygons.push({
+        points: [
+          { x: 50, y: 50 },
+          { x: 100, y: 20 },
+          { x: 150, y: 50 },
+          { x: 150, y: 100 },
+          { x: 100, y: 150 },
+          { x: 50, y: 100 },
+          { x: 20, y: 50 },
+          { x: 100, y: 70 },
+        ],
+        style: {
+          // lineDash: [2, 10],
+          strokeColor: "red",
+        },
+      });
+    },
   },
   components: {
     DraggablePolygon2,
