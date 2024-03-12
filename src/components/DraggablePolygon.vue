@@ -8,8 +8,8 @@
     <canvas
       @contextmenu.prevent="onContextmenu"
       ref="canvas"
-      width="800"
-      height="600"
+      :width="canvasWidth"
+      :height="canvasHeight"
       style="border: 1px solid black"
     ></canvas>
   </div>
@@ -30,7 +30,7 @@ export default {
     //  是否可以点击边添加点
     canAddPoint: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     // 是否可以长按拖动图形
     canDragMove: {
@@ -92,6 +92,18 @@ export default {
       type: Array,
       default: () => [0, 0],
     },
+    //文字
+    fontSize: {
+      type: Number,
+      default: 12,
+    },
+    font: {
+      type: String,
+      default: "Arial bolder",
+    },
+    imageSrc: {
+      type: String,
+    },
   },
   data() {
     return {
@@ -111,16 +123,18 @@ export default {
       addPointPolygonIndex: null,
       addPointPrevIndex: null,
       pointToLineMaxDistance: 4, // 点击的点到，边的最短距离，小于即可添加
+      // 图片
+      createdImage: null,
     };
   },
   mounted() {
     this.initCanvas();
-    this.drawPolygons();
+    this.draw();
   },
   watch: {
     polygons() {
       console.log("watch polygons");
-      this.drawPolygons();
+      this.draw();
     },
   },
   methods: {
@@ -131,9 +145,49 @@ export default {
       canvas.addEventListener("mousemove", this.onMouseMove);
       document.addEventListener("mouseup", this.onMouseUp);
     },
+    draw(mousePoint = null) {
+      // 清空图片
+      this.createdImage = null;
+      if (!this.ctx) {
+        return;
+      }
+
+      // draw
+      const ctx = this.ctx;
+
+      // 如果有图片绘制图片
+      console.log(this.imageSrc);
+      if (this.imageSrc) {
+        const img = new Image();
+        // 处理canvas使用跨域图片无法生成图片的问题
+        // 需要后端配合
+        // img.setAttribute("crossOrigin", "Anonymous");
+        img.onload = () => {
+          console.log("image success");
+          this.drawClear(ctx);
+          ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
+          this.drawPolygons(mousePoint);
+        };
+        img.onerror = (e) => {
+          console.log("image error", e);
+          this.drawClear(ctx);
+          this.drawPolygons(mousePoint);
+        };
+        img.src =
+          "https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE4wEaH?ver=6557";
+      } else {
+        this.drawClear(ctx);
+        this.drawPolygons(mousePoint);
+      }
+    },
+    drawClear(ctx) {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = "rgb(235,235,235)";
+      ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+    },
     drawPolygons(mousePoint = null) {
       const { ctx, polygons, radius } = this;
-      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
       console.log({ polygons });
       polygons.forEach((polygon, index) => {
         const selected = index === this.selectedPolygonIndex;
@@ -168,6 +222,8 @@ export default {
           ctx.strokeStyle = this.getStyleWithKey(polygon, "pointStrokeColor");
           ctx.stroke();
         });
+
+        this.drawText(ctx, polygon, polygon.points[0]);
       });
 
       if (mousePoint) {
@@ -218,6 +274,38 @@ export default {
       ctx.stroke();
       ctx.closePath();
     },
+    drawText(ctx, polygonInfo, point) {
+      if (polygonInfo.text) {
+        const font = this.getStyleWithKey(polygonInfo, "font");
+        const fontSize = this.getStyleWithKey(polygonInfo, "fontSize");
+        ctx.font = `${fontSize}px ${font}`;
+
+        const textLeftPadding = 8;
+        const textBottomPadding = 6;
+        const textSize = ctx.measureText(polygonInfo.text);
+        const rectWidth = textSize.width + textLeftPadding * 2;
+        const rectHeight = fontSize + textBottomPadding * 2;
+        ctx.fillStyle = this.getStyleWithKey(polygonInfo, "strokeColor");
+        const lineWidth = this.getStyleWithKey(polygonInfo, "lineWidth");
+        let x = point.x;
+        let y = point.y - rectHeight - lineWidth;
+        // 防止绘制到外部
+        if (y < 0) {
+          y = point.y;
+        }
+        if (x + rectWidth > this.canvasWidth) {
+          x = this.canvasWidth - rectWidth;
+        }
+        ctx.fillRect(x, y, rectWidth, rectHeight);
+        ctx.fillStyle = "black";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          polygonInfo.text,
+          x + textLeftPadding,
+          y + rectHeight / 2 + lineWidth
+        );
+      }
+    },
     pointHitTest(point, x, y) {
       return Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < this.radius;
     },
@@ -265,6 +353,8 @@ export default {
       // }
       const x = e.offsetX;
       const y = e.offsetY;
+      // 用于优化性能防止，一直重绘
+      const oldAddPoint = this.addPoint;
       this.addPoint = null;
 
       if (this.canAddPoint) {
@@ -323,17 +413,18 @@ export default {
             y: y + dy,
           });
         }
-        this.drawPolygons();
+        this.draw();
       } else if (this.draggingWholePolygon) {
         this.polygons[this.selectedPolygonIndex].points.forEach((point) => {
           point.x += dx;
           point.y += dy;
         });
 
-        this.drawPolygons();
+        this.draw();
       } else {
-        if (this.canAddPoint) {
-          this.drawPolygons({
+        //
+        if (this.canAddPoint && this.addPoint !== oldAddPoint) {
+          this.draw({
             ...this.addPoint,
           });
         }
@@ -354,7 +445,7 @@ export default {
           const curPolygon = this.polygons[this.selectedPolygonIndex];
           curPolygon.points = this.originalPoints;
           this.$emit("update:polygons", this.polygons);
-          this.drawPolygons();
+          this.draw();
         }
       }
 
@@ -430,7 +521,7 @@ export default {
         this.$emit("update:polygons", this.polygons);
         // 如果添加点，则选中当前图形
         this.selectedPolygonIndex = this.addPointPolygonIndex;
-        this.drawPolygons();
+        this.draw();
         return;
       }
       const x = event.offsetX;
@@ -478,7 +569,7 @@ export default {
         this.selectedPolygonIndex !== undefined
       ) {
         // console.log("redraw selectedPolygonIndex:", this.selectedPolygonIndex);
-        this.drawPolygons();
+        this.draw();
       }
 
       // if (this.draggingWholePolygon || this.draggingCornerPoint) {
@@ -526,7 +617,7 @@ export default {
                   const polygon = this.polygons[draggedPolygonIndex];
                   polygon.points.splice(draggedPointIndex, 1);
                   this.$emit("update:polygons", this.polygons);
-                  this.drawPolygons();
+                  this.draw();
                 },
               },
             ],
@@ -551,7 +642,7 @@ export default {
                   const newList = this.polygons;
                   newList.splice(draggedPolygonIndex, 1);
                   this.$emit("update:polygons", newList);
-                  this.drawPolygons();
+                  this.draw();
                 },
               },
             ],

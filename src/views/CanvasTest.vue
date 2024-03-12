@@ -12,8 +12,12 @@
     ></PolygonCanvas>
     <button @click="onAdd">添加</button>
     <DraggablePolygon
+      class="canvas"
+      imageSrc="https://t7.baidu.com/it/u=1595072465,3644073269&fm=193&f=GIF"
       pointFillColor="#1890ff"
       :polygons="polygons"
+      :canvasWidth="600"
+      :canvasHeight="600"
       @update:polygons="onUpdatePolygons"
     ></DraggablePolygon>
 
@@ -56,8 +60,10 @@ export default {
             { x: 350, y: 150 },
             { x: 250, y: 150 },
           ],
+          text: "文字编辑啊啊啊",
           keepRectangle: true, // 是否是矩形，长按拖动点的时候，会维持矩形
           style: {
+            // fontSize:20,
             lineDash: [10, 2],
             selectStrokeColor: "green",
             strokeColor: "red",
@@ -102,4 +108,9 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+.canvas {
+  width: 600px;
+  height: 600px;
+}
+</style>
