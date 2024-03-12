@@ -21,6 +21,7 @@ import {
   checkForIntersectingLines,
   pointToLineDistance,
   getLineLength,
+  movePointToKeepRectangle,
 } from "./geometry";
 
 export default {
@@ -233,6 +234,25 @@ export default {
         // alert("您点击了" + btnNum + "号键，我不能确定它的名称。");
       }
     },
+    movePointToKeepRectangle(rect, pointIndex, newX, newY) {
+      // 计算中心点
+      const centerX = (rect[0].x + rect[1].x + rect[2].x + rect[3].x) / 4;
+      const centerY = (rect[0].y + rect[1].y + rect[2].y + rect[3].y) / 4;
+
+      // 更新被移动的点
+      rect[pointIndex].x = newX;
+      rect[pointIndex].y = newY;
+
+      // 对于每个点，如果不是被移动的点也不是对角点，更新它的位置
+      for (let i = 0; i < rect.length; i++) {
+        if (i !== pointIndex && (i + pointIndex) % 2 === 0) {
+          // 确定不是对角点
+          const oppositeIndex = (pointIndex + 2) % 4; // 找到对角点的索引
+          rect[i].x = 2 * centerX - rect[oppositeIndex].x;
+          rect[i].y = 2 * centerY - rect[oppositeIndex].y;
+        }
+      }
+    },
     onMouseMove(e) {
       // if (
       //   !(
@@ -287,15 +307,22 @@ export default {
       if (this.draggingCornerPoint) {
         // const x = e.offsetX;
         // const y = e.offsetY;
-        const { x, y } =
-          this.polygons[this.selectedPolygonIndex].points[
-            this.draggedPointIndex
-          ];
-        this.$set(
-          this.polygons[this.selectedPolygonIndex].points,
-          this.draggedPointIndex,
-          { x: x + dx, y: y + dy }
-        );
+        const polygon = this.polygons[this.selectedPolygonIndex];
+        const { x, y } = polygon.points[this.draggedPointIndex];
+        if (polygon.keepRectangle && polygon.points.length === 4) {
+          // 保持矩形
+          movePointToKeepRectangle(
+            polygon.points,
+            this.draggedPointIndex,
+            x + dx,
+            y + dy
+          );
+        } else {
+          this.$set(polygon.points, this.draggedPointIndex, {
+            x: x + dx,
+            y: y + dy,
+          });
+        }
         this.drawPolygons();
       } else if (this.draggingWholePolygon) {
         this.polygons[this.selectedPolygonIndex].points.forEach((point) => {

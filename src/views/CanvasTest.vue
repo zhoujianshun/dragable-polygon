@@ -43,6 +43,7 @@ export default {
             { x: 20, y: 50 },
             { x: 100, y: 70 },
           ],
+
           style: {
             // lineDash: [2, 10],
             strokeColor: "red",
@@ -55,6 +56,7 @@ export default {
             { x: 350, y: 150 },
             { x: 250, y: 150 },
           ],
+          keepRectangle: true, // 是否是矩形，长按拖动点的时候，会维持矩形
           style: {
             // lineDash: [2, 10],
             selectStrokeColor: "green",

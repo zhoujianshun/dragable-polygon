@@ -119,15 +119,64 @@ export function pointToLineDistance(p0, p1, p2) {
   };
 }
 
-// 定义两个点表示的直线
-var linePoint1 = { x: 0, y: 0 };
-var linePoint2 = { x: 5, y: 0 };
+// 移动矩形中的点，保持矩形
+export function movePointToKeepRectangle(points, movedPointIndex, newX, newY) {
+  // 确定对角点的索引
+  const oppositeIndex = (movedPointIndex + 2) % 4;
 
-// 要检测的点
-var testPoint = { x: 10, y: 5 };
+  if (points[oppositeIndex].x === newX || points[oppositeIndex].y === newY) {
+    // 防止只角线点重合，造成点位混乱的问题
+    return;
+  }
+  // 相邻点的索引
+  // 后一个点
+  const nextIndex = (movedPointIndex + 1) % 4;
+  // 前一个点
+  const prevIndex = (movedPointIndex + 3) % 4;
 
-console.log(
-  "pointDistanceToLine:",
-  pointToLineDistance(testPoint, linePoint1, linePoint2)
-  // distanceToLine(testPoint, slope, intercept)
-);
+  // 计算对角线保持不变的基础上，相邻点的新位置
+  // const dx = newX - points[movedPointIndex].x;
+  // const dy = newY - points[movedPointIndex].y;
+
+  if (points[nextIndex].x === points[movedPointIndex].x) {
+    // 1, 3
+    // 根据被移动的点的新位置，调整相邻点的位置以保持矩形
+    points[nextIndex].x = newX;
+    points[prevIndex].y = newY;
+  } else {
+    // 0 ,2
+    // 根据被移动的点的新位置，调整相邻点的位置以保持矩形
+    points[prevIndex].x = newX;
+    points[nextIndex].y = newY;
+  }
+
+  // 更新被移动的点的位置
+  points[movedPointIndex] = { x: newX, y: newY };
+}
+
+// // 定义两个点表示的直线
+// var linePoint1 = { x: 0, y: 0 };
+// var linePoint2 = { x: 5, y: 0 };
+
+// // 要检测的点
+// var testPoint = { x: 10, y: 5 };
+
+// console.log(
+//   "pointDistanceToLine:",
+//   pointToLineDistance(testPoint, linePoint1, linePoint2)
+//   // distanceToLine(testPoint, slope, intercept)
+// );
+
+// // 示例：四个点的数组表示一个矩形
+// let rectanglePoints = [
+//   { x: 0, y: 0 }, // 左上角
+//   { x: 4, y: 0 }, // 右上角
+//   { x: 4, y: 3 }, // 右下角
+//   { x: 0, y: 3 }, // 左下角
+// ];
+
+// // 改变一个点的位置，比如改变第一个点（索引为0）到新位置(1,1)
+// movePointToKeepRectangle(rectanglePoints, 1, 1, 1);
+
+// // 查看调整后的矩形点
+// console.log(rectanglePoints);
