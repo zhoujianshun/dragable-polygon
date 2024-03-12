@@ -8,8 +8,12 @@
     <canvas
       @contextmenu.prevent="onContextmenu"
       ref="canvas"
-      :width="canvasWidth"
-      :height="canvasHeight"
+      :width="canvasWidth * scaleFactor"
+      :height="canvasHeight * scaleFactor"
+      :style="{
+        width: canvasWidth,
+        height: canvasHeight,
+      }"
       style="border: 1px solid black"
     ></canvas>
   </div>
@@ -27,6 +31,10 @@ import {
 export default {
   name: "DraggablePolygon",
   props: {
+    scaleFactor: {
+      type: Number,
+      default: 1,
+    },
     //  是否可以点击边添加点
     canAddPoint: {
       type: Boolean,
