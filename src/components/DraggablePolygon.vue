@@ -4,7 +4,7 @@
     2.拖动角修改图形
     3.点击边，添加多边形的角
  -->
-  <div>
+  <div class="canvas-wrapper">
     <canvas
       @contextmenu.prevent="onContextmenu"
       ref="canvas"
@@ -26,6 +26,21 @@ import {
 export default {
   name: "DraggablePolygon",
   props: {
+    //  是否可以点击边添加点
+    canAddPoint: {
+      type: Boolean,
+      default: false,
+    },
+    // 是否可以长按拖动图形
+    canDragMove: {
+      type: Boolean,
+      default: true,
+    },
+    // 是否可以长按拖动点
+    canDragPoint: {
+      type: Boolean,
+      default: true,
+    },
     polygons: {
       type: Array,
       default: undefined,
@@ -38,13 +53,39 @@ export default {
       type: Number,
       default: undefined,
     },
+    fillColor: {
+      type: String,
+      // default: "lightblue",
+    },
     strokeColor: {
+      type: String,
+      default: "#1890ff",
+    },
+    selectStrokeColor: {
       type: String,
       default: "#1890ff",
     },
     lineWidth: {
       type: Number,
+      default: 1,
+    },
+    selectedLineWidth: {
+      type: Number,
       default: 2,
+    },
+    pointFillColor: {
+      type: String,
+      default: "red",
+      // default: "#1890ff",
+    },
+    pointStrokeColor: {
+      type: String,
+      default: "#1890ff",
+      // default: "black",
+    },
+    radius: {
+      type: Number,
+      default: 5,
     },
     lineDash: {
       type: Array,
@@ -56,7 +97,7 @@ export default {
       ctx: null,
       selectedPolygonIndex: null, // 选中的polygon的index
       // 长按拖动角，改变多边形
-      radius: 10,
+      // radius: 10,
       draggingCornerPoint: false, // 移动角
       draggedPointIndex: null,
       originalPoints: [],
@@ -89,10 +130,10 @@ export default {
       canvas.addEventListener("mousemove", this.onMouseMove);
       document.addEventListener("mouseup", this.onMouseUp);
     },
-    drawPolygons() {
+    drawPolygons(mousePoint = null) {
       const { ctx, polygons, radius } = this;
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      // console.log({ polygons });
+      console.log({ polygons });
       polygons.forEach((polygon, index) => {
         const selected = index === this.selectedPolygonIndex;
         // console.log(polygon);
@@ -104,22 +145,77 @@ export default {
           }
         });
         ctx.closePath();
-        ctx.fillStyle = "lightblue";
-        ctx.fill();
-        ctx.lineWidth = selected ? 4 : 2;
-        ctx.strokeStyle = selected ? "red" : "blue";
+        if (this.fillColor) {
+          ctx.fillStyle = this.getStyleWithKey(polygon, "fillColor");
+          ctx.fill();
+        }
+
+        ctx.lineWidth = selected
+          ? this.getStyleWithKey(polygon, "selectedLineWidth")
+          : this.getStyleWithKey(polygon, "lineWidth");
+        ctx.strokeStyle = selected
+          ? this.getStyleWithKey(polygon, "selectStrokeColor")
+          : this.getStyleWithKey(polygon, "strokeColor");
         ctx.stroke();
 
         polygon.points.forEach((point) => {
           ctx.beginPath();
           ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-          ctx.fillStyle = "red";
+          ctx.fillStyle = this.getStyleWithKey(polygon, "pointFillColor");
           ctx.fill();
           ctx.lineWidth = 1;
-          ctx.strokeStyle = "black";
+          ctx.strokeStyle = this.getStyleWithKey(polygon, "pointStrokeColor");
           ctx.stroke();
         });
       });
+
+      if (mousePoint) {
+        // ctx.beginPath();
+        // ctx.arc(mousePoint.x, mousePoint.y, 5, 0, Math.PI * 2);
+        // ctx.fillStyle = "black";
+        // ctx.fill();
+        // ctx.lineWidth = 1;
+        // ctx.strokeStyle = "black";
+        // ctx.stroke();
+        // const canvas = document.getElementById("myCanvas");
+        // const ctx = canvas.getContext("2d");
+        this.drawAddCircle(ctx, mousePoint);
+      }
+    },
+    // 绘制鼠标在可添加点时显示的圆形➕号
+    drawAddCircle(ctx, center) {
+      // 设置圆的中心点坐标
+      const centerX = center.x;
+      const centerY = center.y;
+      const radius = 8;
+
+      // 绘制圆
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
+      ctx.fillStyle = this.pointFillColor;
+      ctx.fill();
+      ctx.closePath();
+
+      // 设置加号的属性
+      const plusSize = 10; // 加号的尺寸
+
+      // 绘制加号的竖线
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - plusSize / 2);
+      ctx.lineTo(centerX, centerY + plusSize / 2);
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.closePath();
+
+      // 绘制加号的横线
+      ctx.beginPath();
+      ctx.moveTo(centerX - plusSize / 2, centerY);
+      ctx.lineTo(centerX + plusSize / 2, centerY);
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.closePath();
     },
     pointHitTest(point, x, y) {
       return Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < this.radius;
@@ -138,19 +234,53 @@ export default {
       }
     },
     onMouseMove(e) {
-      if (
-        !(
-          this.addPoint ||
-          this.draggingWholePolygon ||
-          this.draggingCornerPoint
-        )
-      ) {
-        return;
-      }
-
+      // if (
+      //   !(
+      //     this.addPoint ||
+      //     this.draggingWholePolygon ||
+      //     this.draggingCornerPoint
+      //   )
+      // ) {
+      //   return;
+      // }
+      const x = e.offsetX;
+      const y = e.offsetY;
       this.addPoint = null;
-      this.addPointPolygonIndex = null;
-      this.addPointPrevIndex = null;
+
+      if (this.canAddPoint) {
+        // 检测是否可以点击边添加点
+        let inPolygonIndex = null;
+        // 后绘制的涂层在上面，逆序查找
+        for (
+          let polygonIndex = this.polygons.length - 1;
+          polygonIndex >= 0;
+          polygonIndex--
+        ) {
+          const polygon = this.polygons[polygonIndex];
+          if (!inPolygonIndex && pointInPolygon(polygon.points, x, y)) {
+            //
+            inPolygonIndex = polygonIndex;
+          }
+          const pointIndex = this.searchMovePoint(polygon, x, y);
+          if (!inPolygonIndex && pointIndex !== -1) {
+            //
+            inPolygonIndex = polygonIndex;
+          }
+
+          // 一.点击多边形的边，添加点
+          // 查找是否有点，符合点击边添加点的条件
+          this.searchAddPointLine(polygon, x, y, polygonIndex);
+          // 防止点出现在被图层覆盖的线上
+          if (inPolygonIndex && this.addPoint) {
+            if (this.addPointPolygonIndex < inPolygonIndex) {
+              this.addPoint = null;
+              this.addPointPolygonIndex = null;
+              this.addPointPrevIndex = null;
+              break;
+            }
+          }
+        }
+      }
 
       const dx = e.offsetX - this.startX;
       const dy = e.offsetY - this.startY;
@@ -174,21 +304,17 @@ export default {
         });
 
         this.drawPolygons();
+      } else {
+        if (this.canAddPoint) {
+          this.drawPolygons({
+            ...this.addPoint,
+          });
+        }
       }
       this.startX = e.offsetX;
       this.startY = e.offsetY;
     },
     onMouseUp() {
-      if (this.addPoint) {
-        console.log("addPoint", this.addPoint);
-        const polygon = this.polygons[this.addPointPolygonIndex];
-        polygon.points.splice(this.addPointPrevIndex + 1, 0, this.addPoint);
-        this.$emit("update:polygons", this.polygons);
-        // 如果添加点，则选中当前图形
-        this.selectedPolygonIndex = this.addPointPolygonIndex;
-        this.drawPolygons();
-      }
-
       if (!this.addPoint) {
         // 拖动角，检测是否有线段相交，如果有则还原
         if (
@@ -230,8 +356,8 @@ export default {
           // 防止添加的点，距离线段两端太近
           // 添加此判断，也可以避免，点击的点，距离多条边都符合要求的情况
           if (
-            getLineLength(projection, point1) > this.pointToLineMaxDistance &&
-            getLineLength(projection, point2) > this.pointToLineMaxDistance
+            getLineLength(projection, point1) > this.radius &&
+            getLineLength(projection, point2) > this.radius
           ) {
             this.addPoint = projection;
             this.addPointPolygonIndex = polygonIndex;
@@ -243,20 +369,43 @@ export default {
       }
     },
     // 查找是否点击多边形的角，拖动用于改变多边形尺寸
-    searchMovePoint(polygon, x, y, polygonIndex) {
-      return polygon.points.some((point, pointIndex) => {
+    searchMovePoint(polygon, x, y) {
+      // 倒序查找
+      let index = -1;
+      for (
+        let pointIndex = polygon.points.length - 1;
+        pointIndex >= 0;
+        pointIndex--
+      ) {
+        const point = polygon.points[pointIndex];
         if (this.pointHitTest(point, x, y)) {
-          this.selectedPolygonIndex = polygonIndex;
-          this.draggedPointIndex = pointIndex;
-          this.draggingCornerPoint = true;
-          // 保存原始坐标，用于出措时恢复
-          this.originalPoints = [...polygon.points];
-          return true;
+          // this.selectedPolygonIndex = polygonIndex;
+          // this.draggedPointIndex = pointIndex;
+          // this.draggingCornerPoint = true;
+          // // 保存原始坐标，用于出措时恢复
+          // this.originalPoints = [...polygon.points];
+          index = pointIndex;
+          break;
         }
-        return false;
-      });
+      }
+      return index;
     },
     handleLeftMouseDown(event) {
+      if (this.addPoint) {
+        console.log(
+          "addPoint",
+          this.addPoint,
+          this.addPointPolygonIndex,
+          this.addPointPrevIndex
+        );
+        const polygon = this.polygons[this.addPointPolygonIndex];
+        polygon.points.splice(this.addPointPrevIndex + 1, 0, this.addPoint);
+        this.$emit("update:polygons", this.polygons);
+        // 如果添加点，则选中当前图形
+        this.selectedPolygonIndex = this.addPointPolygonIndex;
+        this.drawPolygons();
+        return;
+      }
       const x = event.offsetX;
       const y = event.offsetY;
       this.startX = x;
@@ -268,22 +417,32 @@ export default {
         polygonIndex--
       ) {
         const polygon = this.polygons[polygonIndex];
-        if (!this.addPoint) {
-          // 一.点击多边形的边，添加点
-          // 查找是否有点，符合点击边添加点的条件
-          this.searchAddPointLine(polygon, x, y, polygonIndex);
-        }
+        // if (!this.addPoint) {
+        //   // 一.点击多边形的边，添加点
+        //   // 查找是否有点，符合点击边添加点的条件
+        //   this.searchAddPointLine(polygon, x, y, polygonIndex);
+        // }
         // 二.判断是否点击多边形的角，拖动用于改变多边形尺寸
-        if (this.searchMovePoint(polygon, x, y, polygonIndex)) {
-          break;
+        if (this.canDragPoint) {
+          const pointIndex = this.searchMovePoint(polygon, x, y);
+          if (pointIndex !== -1) {
+            this.selectedPolygonIndex = polygonIndex;
+            this.draggedPointIndex = pointIndex;
+            this.draggingCornerPoint = true;
+            // 保存原始坐标，用于出措时恢复
+            this.originalPoints = [...polygon.points];
+            break;
+          }
         }
         // 三.判断是否点击在多边形内部，用于移动多边形
-        if (pointInPolygon(polygon.points, x, y)) {
-          // 前面没找到符合拖动的角，直接赋值用于拖动多边形
-          // 设置需要拖动的图形的index
-          this.selectedPolygonIndex = polygonIndex;
-          this.draggingWholePolygon = true;
-          break;
+        if (this.canDragMove) {
+          if (pointInPolygon(polygon.points, x, y)) {
+            // 前面没找到符合拖动的角，直接赋值用于拖动多边形
+            // 设置需要拖动的图形的index
+            this.selectedPolygonIndex = polygonIndex;
+            this.draggingWholePolygon = true;
+            break;
+          }
         }
       }
       // 表示有选中的图形，重绘，显示选中的样式
@@ -378,6 +537,14 @@ export default {
         }
       }
     },
+    // 获取polygon样式属性，没有则使用统一设置
+    getStyleWithKey(polygon, key) {
+      return polygon.style
+        ? polygon.style[key]
+          ? polygon.style[key]
+          : this[key]
+        : this[key];
+    },
   },
   beforeDestroy() {
     const canvas = this.$refs.canvas;
@@ -388,4 +555,17 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.canvas-wrapper {
+  position: relative;
+  .mouse-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: black;
+    position: absolute;
+    opacity: 0.5;
+    transition: transform 0.5s, opacity 0.5s; /* 平滑变换效果 */
+  }
+}
+</style>

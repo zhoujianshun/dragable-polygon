@@ -1,5 +1,10 @@
 <template>
   <div>
+    <button @click="toggleDropdown">切换下拉</button>
+    <transition name="slide">
+      <dropdown-component v-if="showDropdown" />
+    </transition>
+    <HelloWorld></HelloWorld>
     <PolygonCanvas
       :polygons="polygons"
       :canvasWidth="600"
@@ -7,9 +12,11 @@
     ></PolygonCanvas>
     <button @click="onAdd">添加</button>
     <DraggablePolygon
+      pointFillColor="#1890ff"
       :polygons="polygons"
       @update:polygons="onUpdatePolygons"
     ></DraggablePolygon>
+
     <DraggablePolygon2></DraggablePolygon2>
   </div>
 </template>
@@ -18,9 +25,12 @@
 import PolygonCanvas from "../components/polygon-canvas/index.vue";
 import DraggablePolygon from "../components/DraggablePolygon.vue";
 import DraggablePolygon2 from "../components/DraggablePolygon3.vue";
+import HelloWorld from "../components/HelloWorld.vue";
+import DropdownComponent from "../components/DropdownComponent.vue";
 export default {
   data() {
     return {
+      showDropdown: false,
       polygons: [
         {
           points: [
@@ -41,16 +51,13 @@ export default {
         {
           points: [
             { x: 250, y: 50 },
-            { x: 300, y: 20 },
             { x: 350, y: 50 },
-            { x: 350, y: 100 },
-            { x: 300, y: 150 },
-            { x: 250, y: 100 },
-            { x: 220, y: 50 },
-            { x: 300, y: 70 },
+            { x: 350, y: 150 },
+            { x: 250, y: 150 },
           ],
           style: {
             // lineDash: [2, 10],
+            selectStrokeColor: "green",
             strokeColor: "red",
           },
         },
@@ -58,6 +65,9 @@ export default {
     };
   },
   methods: {
+    toggleDropdown() {
+      this.showDropdown = !this.showDropdown;
+    },
     onUpdatePolygons() {
       console.log("onUpdatePolygons");
     },
@@ -81,6 +91,8 @@ export default {
     },
   },
   components: {
+    DropdownComponent,
+    HelloWorld,
     DraggablePolygon2,
     DraggablePolygon,
     PolygonCanvas,
