@@ -58,7 +58,7 @@ export default {
           ],
           keepRectangle: true, // 是否是矩形，长按拖动点的时候，会维持矩形
           style: {
-            // lineDash: [2, 10],
+            lineDash: [10, 2],
             selectStrokeColor: "green",
             strokeColor: "red",
           },

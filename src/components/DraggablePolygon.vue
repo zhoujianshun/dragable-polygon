@@ -150,7 +150,7 @@ export default {
           ctx.fillStyle = this.getStyleWithKey(polygon, "fillColor");
           ctx.fill();
         }
-
+        ctx.setLineDash(this.getStyleWithKey(polygon, "lineDash"));
         ctx.lineWidth = selected
           ? this.getStyleWithKey(polygon, "selectedLineWidth")
           : this.getStyleWithKey(polygon, "lineWidth");
