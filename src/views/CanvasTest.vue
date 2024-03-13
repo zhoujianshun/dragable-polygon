@@ -5,6 +5,8 @@
       class="canvas"
       imageSrc="https://t7.baidu.com/it/u=1595072465,3644073269&fm=193&f=GIF"
       pointFillColor="#1890ff"
+      :selectedPolygon="polygons[0]"
+      @update:selectedPolygon="onSelectedPolygonChanged"
       :scaleFactor="2"
       :polygons="polygons"
       :canvasWidth="600"
@@ -54,6 +56,9 @@ export default {
     };
   },
   methods: {
+    onSelectedPolygonChanged(p) {
+      console.log({ p });
+    },
     onUpdatePolygons() {
       console.log("onUpdatePolygons");
     },

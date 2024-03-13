@@ -31,6 +31,10 @@ import {
 export default {
   name: "DraggablePolygon",
   props: {
+    selectedPolygon: {
+      type: Object,
+      default: null,
+    },
     scaleFactor: {
       type: Number,
       default: 1,
@@ -123,6 +127,13 @@ export default {
       return this.canvasHeight * this.scaleFactor;
     },
   },
+  created() {
+    if (this.polygons) {
+      this.selectedPolygonIndex = this.polygons.findIndex(
+        (item) => item === this.selectedPolygon
+      );
+    }
+  },
   data() {
     return {
       ctx: null,
@@ -156,6 +167,13 @@ export default {
     },
   },
   methods: {
+    updateSelectedPolygonIndex(polygonIndex) {
+      this.selectedPolygonIndex = polygonIndex;
+      this.$emit(
+        "update:selectedPolygon",
+        this.polygons[this.selectedPolygonIndex]
+      );
+    },
     initCanvas() {
       const canvas = this.$refs.canvas;
       this.ctx = canvas.getContext("2d");
@@ -454,7 +472,7 @@ export default {
           // 新的图形存在相交的线段，还原
           const curPolygon = this.polygons[this.selectedPolygonIndex];
           curPolygon.points = this.originalPoints;
-          this.$emit("update:polygons", this.polygons);
+          // this.$emit("update:polygons", this.polygons);
           this.draw();
         }
       }
@@ -528,9 +546,11 @@ export default {
         );
         const polygon = this.polygons[this.addPointPolygonIndex];
         polygon.points.splice(this.addPointPrevIndex + 1, 0, this.addPoint);
-        this.$emit("update:polygons", this.polygons);
+        // this.$emit("update:polygons", this.polygons);
         // 如果添加点，则选中当前图形
-        this.selectedPolygonIndex = this.addPointPolygonIndex;
+        this.updateSelectedPolygonIndex(this.addPointPolygonIndex);
+
+        //
         this.draw();
         return;
       }
@@ -554,7 +574,7 @@ export default {
         if (this.canDragPoint) {
           const pointIndex = this.searchMovePoint(polygon, x, y);
           if (pointIndex !== -1) {
-            this.selectedPolygonIndex = polygonIndex;
+            this.updateSelectedPolygonIndex(polygonIndex);
             this.draggedPointIndex = pointIndex;
             this.draggingCornerPoint = true;
             // 保存原始坐标，用于出措时恢复
@@ -567,7 +587,7 @@ export default {
           if (pointInPolygon(polygon.points, x, y)) {
             // 前面没找到符合拖动的角，直接赋值用于拖动多边形
             // 设置需要拖动的图形的index
-            this.selectedPolygonIndex = polygonIndex;
+            this.updateSelectedPolygonIndex(polygonIndex);
             this.draggingWholePolygon = true;
             break;
           }
@@ -626,7 +646,7 @@ export default {
                 onClick: () => {
                   const polygon = this.polygons[draggedPolygonIndex];
                   polygon.points.splice(draggedPointIndex, 1);
-                  this.$emit("update:polygons", this.polygons);
+                  // this.$emit("update:polygons", this.polygons);
                   this.draw();
                 },
               },
@@ -651,7 +671,7 @@ export default {
                   console.log("删除", draggedPolygonIndex);
                   const newList = this.polygons;
                   newList.splice(draggedPolygonIndex, 1);
-                  this.$emit("update:polygons", newList);
+                  // this.$emit("update:polygons", newList);
                   this.draw();
                 },
               },
