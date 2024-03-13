@@ -392,6 +392,10 @@ export default {
           polygonIndex--
         ) {
           const polygon = this.polygons[polygonIndex];
+          // 维持矩形，不允许添加删除角
+          if (polygon.keepRectangle) {
+            continue;
+          }
           if (!inPolygonIndex && pointInPolygon(polygon.points, x, y)) {
             //
             inPolygonIndex = polygonIndex;
