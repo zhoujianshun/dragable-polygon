@@ -8,11 +8,11 @@
     <canvas
       @contextmenu.prevent="onContextmenu"
       ref="canvas"
-      :width="canvasWidth * scaleFactor"
-      :height="canvasHeight * scaleFactor"
+      :width="canvasActualWidth"
+      :height="canvasActualHeight"
       :style="{
-        width: canvasWidth,
-        height: canvasHeight,
+        width: canvasWidth + 'px',
+        height: canvasHeight + 'px',
       }"
       style="border: 1px solid black"
     ></canvas>
@@ -113,6 +113,16 @@ export default {
       type: String,
     },
   },
+  computed: {
+    // 实际宽度
+    canvasActualWidth() {
+      return this.canvasWidth * this.scaleFactor;
+    },
+    // 实际高度
+    canvasActualHeight() {
+      return this.canvasHeight * this.scaleFactor;
+    },
+  },
   data() {
     return {
       ctx: null,
@@ -173,7 +183,13 @@ export default {
         img.onload = () => {
           console.log("image success");
           this.drawClear(ctx);
-          ctx.drawImage(img, 0, 0, this.canvasWidth, this.canvasHeight);
+          ctx.drawImage(
+            img,
+            0,
+            0,
+            this.canvasActualWidth,
+            this.canvasActualHeight
+          );
           this.drawPolygons(mousePoint);
         };
         img.onerror = (e) => {
@@ -302,8 +318,8 @@ export default {
         if (y < 0) {
           y = point.y;
         }
-        if (x + rectWidth > this.canvasWidth) {
-          x = this.canvasWidth - rectWidth;
+        if (x + rectWidth > this.canvasActualWidth) {
+          x = this.canvasActualWidth - rectWidth;
         }
         ctx.fillRect(x, y, rectWidth, rectHeight);
         ctx.fillStyle = "black";
@@ -360,8 +376,8 @@ export default {
       // ) {
       //   return;
       // }
-      const x = e.offsetX;
-      const y = e.offsetY;
+      const x = e.offsetX * this.scaleFactor;
+      const y = e.offsetY * this.scaleFactor;
       // 用于优化性能防止，一直重绘
       const oldAddPoint = this.addPoint;
       this.addPoint = null;
@@ -401,8 +417,8 @@ export default {
         }
       }
 
-      const dx = e.offsetX - this.startX;
-      const dy = e.offsetY - this.startY;
+      const dx = x - this.startX;
+      const dy = y - this.startY;
       if (this.draggingCornerPoint) {
         // const x = e.offsetX;
         // const y = e.offsetY;
@@ -438,8 +454,8 @@ export default {
           });
         }
       }
-      this.startX = e.offsetX;
-      this.startY = e.offsetY;
+      this.startX = x;
+      this.startY = y;
     },
     onMouseUp() {
       if (!this.addPoint) {
@@ -533,8 +549,8 @@ export default {
         this.draw();
         return;
       }
-      const x = event.offsetX;
-      const y = event.offsetY;
+      const x = event.offsetX * this.scaleFactor;
+      const y = event.offsetY * this.scaleFactor;
       this.startX = x;
       this.startY = y;
       // 后绘制的涂层在上面，逆序查找
@@ -596,8 +612,8 @@ export default {
       // 检测右击区域
       // 1.点击在角上，删除角上的点
       // 2.点击在图形上，弹出删除菜单
-      const x = event.offsetX;
-      const y = event.offsetY;
+      const x = event.offsetX * this.scaleFactor;
+      const y = event.offsetY * this.scaleFactor;
       for (
         let polygonIndex = this.polygons.length - 1;
         polygonIndex >= 0;
