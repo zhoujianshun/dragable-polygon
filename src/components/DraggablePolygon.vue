@@ -191,7 +191,8 @@ export default {
     drawClear(ctx) {
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.fillStyle = "rgb(235,235,235)";
-      ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+      // draw background
+      // ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
     },
     drawPolygons(mousePoint = null) {
       const { ctx, polygons, radius } = this;
@@ -670,6 +671,17 @@ export default {
           ? polygon.style[key]
           : this[key]
         : this[key];
+    },
+    // 返回图片
+    toImage() {
+      if (this.createdImage) {
+        return this.createdImage;
+      }
+      const canvas = this.$refs.canvas;
+      if (canvas) {
+        return canvas.toDataURL("image/jpg");
+      }
+      return null;
     },
   },
   beforeDestroy() {
