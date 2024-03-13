@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import DraggablePolygon from "../components/draggable-polygon/DraggablePolygon.vue";
+import DraggablePolygon from "../components/draggable-polygon/index.vue";
 export default {
   data() {
     return {
