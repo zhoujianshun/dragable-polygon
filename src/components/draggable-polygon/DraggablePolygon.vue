@@ -707,3 +707,4 @@ export default {
   }
 }
 </style>
+./draggable-polygon/geometry

@@ -1,15 +1,5 @@
 <template>
   <div>
-    <button @click="toggleDropdown">切换下拉</button>
-    <transition name="slide">
-      <dropdown-component v-if="showDropdown" />
-    </transition>
-    <HelloWorld></HelloWorld>
-    <PolygonCanvas
-      :polygons="polygons"
-      :canvasWidth="600"
-      :canvasHeight="600"
-    ></PolygonCanvas>
     <button @click="onAdd">添加</button>
     <DraggablePolygon
       class="canvas"
@@ -20,32 +10,23 @@
       :canvasHeight="600"
       @update:polygons="onUpdatePolygons"
     ></DraggablePolygon>
-
-    <DraggablePolygon2></DraggablePolygon2>
   </div>
 </template>
 
 <script>
-import PolygonCanvas from "../components/polygon-canvas/index.vue";
-import DraggablePolygon from "../components/DraggablePolygon.vue";
-import DraggablePolygon2 from "../components/DraggablePolygon3.vue";
-import HelloWorld from "../components/HelloWorld.vue";
-import DropdownComponent from "../components/DropdownComponent.vue";
+import DraggablePolygon from "../components/draggable-polygon/DraggablePolygon.vue";
 export default {
   data() {
     return {
-      showDropdown: false,
       polygons: [
         {
           points: [
-            { x: 50, y: 50 },
-            { x: 100, y: 20 },
-            { x: 150, y: 50 },
-            { x: 150, y: 100 },
-            { x: 100, y: 150 },
-            { x: 50, y: 100 },
-            { x: 20, y: 50 },
-            { x: 100, y: 70 },
+            { x: 100, y: 100 },
+            { x: 200, y: 100 },
+            { x: 250, y: 200 },
+            { x: 200, y: 300 },
+            { x: 100, y: 300 },
+            { x: 50, y: 200 },
           ],
 
           style: {
@@ -73,9 +54,6 @@ export default {
     };
   },
   methods: {
-    toggleDropdown() {
-      this.showDropdown = !this.showDropdown;
-    },
     onUpdatePolygons() {
       console.log("onUpdatePolygons");
     },
@@ -99,11 +77,7 @@ export default {
     },
   },
   components: {
-    DropdownComponent,
-    HelloWorld,
-    DraggablePolygon2,
     DraggablePolygon,
-    PolygonCanvas,
   },
 };
 </script>

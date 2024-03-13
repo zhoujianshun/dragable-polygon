@@ -21,7 +21,7 @@ import {
   checkForIntersectingLines,
   pointToLineDistance,
   getLineLength,
-} from "./geometry";
+} from "./draggable-polygon/geometry";
 
 export default {
   name: "DraggablePolygon",
@@ -378,3 +378,4 @@ export default {
 </script>
 
 <style lang="scss" scoped></style>
+./draggable-polygon/geometry

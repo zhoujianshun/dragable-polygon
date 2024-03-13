@@ -19,7 +19,7 @@ import {
   pointInPolygon,
   checkForIntersectingLines,
   // pointToLineDistance,
-} from "./geometry";
+} from "./draggable-polygon/geometry";
 
 console.log(
   "doLinesIntersect:",
@@ -283,3 +283,4 @@ export default {
   },
 };
 </script>
+./draggable-polygon/geometry
