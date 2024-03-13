@@ -179,7 +179,7 @@ export default {
         const img = new Image();
         // 处理canvas使用跨域图片无法生成图片的问题
         // 需要后端配合
-        // img.setAttribute("crossOrigin", "Anonymous");
+        img.setAttribute("crossOrigin", "Anonymous");
         img.onload = () => {
           console.log("image success");
           this.drawClear(ctx);
@@ -197,8 +197,7 @@ export default {
           this.drawClear(ctx);
           this.drawPolygons(mousePoint);
         };
-        img.src =
-          "https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE4wEaH?ver=6557";
+        img.src = `${this.imageSrc}?time=${new Date().valueOf()}`;
       } else {
         this.drawClear(ctx);
         this.drawPolygons(mousePoint);
@@ -336,12 +335,12 @@ export default {
     },
     onMouseDown(event) {
       const btnNum = event.button;
-      if (btnNum == 2) {
+      if (btnNum === 2) {
         // alert("您点击了鼠标右键！");
-      } else if (btnNum == 0) {
+      } else if (btnNum === 0) {
         this.handleLeftMouseDown(event);
         // alert("您点击了鼠标左键！");
-      } else if (btnNum == 1) {
+      } else if (btnNum === 1) {
         // alert("您点击了鼠标中键！");
       } else {
         // alert("您点击了" + btnNum + "号键，我不能确定它的名称。");
@@ -727,4 +726,3 @@ export default {
   }
 }
 </style>
-./draggable-polygon/geometry
