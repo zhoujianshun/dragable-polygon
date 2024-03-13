@@ -236,18 +236,20 @@ export default {
           ? this.getStyleWithKey(polygon, "selectStrokeColor")
           : this.getStyleWithKey(polygon, "strokeColor");
         ctx.stroke();
-
-        polygon.points.forEach((point) => {
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-          ctx.fillStyle = this.getStyleWithKey(polygon, "pointFillColor");
-          ctx.fill();
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = this.getStyleWithKey(polygon, "pointStrokeColor");
-          ctx.stroke();
-        });
-
-        this.drawText(ctx, polygon, polygon.points[0]);
+        if (this.canDragPoint) {
+          polygon.points.forEach((point) => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.getStyleWithKey(polygon, "pointFillColor");
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = this.getStyleWithKey(polygon, "pointStrokeColor");
+            ctx.stroke();
+          });
+        }
+        if (polygon.text) {
+          this.drawText(ctx, polygon, polygon.points[0]);
+        }
       });
 
       if (mousePoint) {
@@ -299,36 +301,34 @@ export default {
       ctx.closePath();
     },
     drawText(ctx, polygonInfo, point) {
-      if (polygonInfo.text) {
-        const font = this.getStyleWithKey(polygonInfo, "font");
-        const fontSize = this.getStyleWithKey(polygonInfo, "fontSize");
-        ctx.font = `${fontSize}px ${font}`;
+      const font = this.getStyleWithKey(polygonInfo, "font");
+      const fontSize = this.getStyleWithKey(polygonInfo, "fontSize");
+      ctx.font = `${fontSize}px ${font}`;
 
-        const textLeftPadding = 8;
-        const textBottomPadding = 6;
-        const textSize = ctx.measureText(polygonInfo.text);
-        const rectWidth = textSize.width + textLeftPadding * 2;
-        const rectHeight = fontSize + textBottomPadding * 2;
-        ctx.fillStyle = this.getStyleWithKey(polygonInfo, "strokeColor");
-        const lineWidth = this.getStyleWithKey(polygonInfo, "lineWidth");
-        let x = point.x;
-        let y = point.y - rectHeight - lineWidth;
-        // 防止绘制到外部
-        if (y < 0) {
-          y = point.y;
-        }
-        if (x + rectWidth > this.canvasActualWidth) {
-          x = this.canvasActualWidth - rectWidth;
-        }
-        ctx.fillRect(x, y, rectWidth, rectHeight);
-        ctx.fillStyle = "black";
-        ctx.textBaseline = "middle";
-        ctx.fillText(
-          polygonInfo.text,
-          x + textLeftPadding,
-          y + rectHeight / 2 + lineWidth
-        );
+      const textLeftPadding = 8;
+      const textBottomPadding = 6;
+      const textSize = ctx.measureText(polygonInfo.text);
+      const rectWidth = textSize.width + textLeftPadding * 2;
+      const rectHeight = fontSize + textBottomPadding * 2;
+      ctx.fillStyle = this.getStyleWithKey(polygonInfo, "strokeColor");
+      const lineWidth = this.getStyleWithKey(polygonInfo, "lineWidth");
+      let x = point.x;
+      let y = point.y - rectHeight - lineWidth;
+      // 防止绘制到外部
+      if (y < 0) {
+        y = point.y;
       }
+      if (x + rectWidth > this.canvasActualWidth) {
+        x = this.canvasActualWidth - rectWidth;
+      }
+      ctx.fillRect(x, y, rectWidth, rectHeight);
+      ctx.fillStyle = "black";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        polygonInfo.text,
+        x + textLeftPadding,
+        y + rectHeight / 2 + lineWidth
+      );
     },
     pointHitTest(point, x, y) {
       return Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < this.radius;
@@ -346,25 +346,7 @@ export default {
         // alert("您点击了" + btnNum + "号键，我不能确定它的名称。");
       }
     },
-    movePointToKeepRectangle(rect, pointIndex, newX, newY) {
-      // 计算中心点
-      const centerX = (rect[0].x + rect[1].x + rect[2].x + rect[3].x) / 4;
-      const centerY = (rect[0].y + rect[1].y + rect[2].y + rect[3].y) / 4;
 
-      // 更新被移动的点
-      rect[pointIndex].x = newX;
-      rect[pointIndex].y = newY;
-
-      // 对于每个点，如果不是被移动的点也不是对角点，更新它的位置
-      for (let i = 0; i < rect.length; i++) {
-        if (i !== pointIndex && (i + pointIndex) % 2 === 0) {
-          // 确定不是对角点
-          const oppositeIndex = (pointIndex + 2) % 4; // 找到对角点的索引
-          rect[i].x = 2 * centerX - rect[oppositeIndex].x;
-          rect[i].y = 2 * centerY - rect[oppositeIndex].y;
-        }
-      }
-    },
     onMouseMove(e) {
       // if (
       //   !(

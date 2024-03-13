@@ -29,7 +29,6 @@ export default {
             { x: 100, y: 300 },
             { x: 50, y: 200 },
           ],
-
           style: {
             // lineDash: [2, 10],
             strokeColor: "red",
