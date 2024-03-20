@@ -13,6 +13,19 @@
       :canvasHeight="600"
       @update:polygons="onUpdatePolygons"
     ></DraggablePolygon>
+
+    <DraggablePolygon
+      class="canvas"
+      imageSrc="https://t7.baidu.com/it/u=1595072465,3644073269&fm=193&f=GIF"
+      pointFillColor="#1890ff"
+      :selectedPolygon="polygons[0]"
+      @update:selectedPolygon="onSelectedPolygonChanged"
+      :scaleFactor="1"
+      :polygons="polygons"
+      :canvasWidth="600"
+      :canvasHeight="600"
+      @update:polygons="onUpdatePolygons"
+    ></DraggablePolygon>
   </div>
 </template>
 
@@ -79,6 +92,8 @@ export default {
           strokeColor: "red",
         },
       });
+
+      // this.polygons = [...this.polygons];
     },
   },
   components: {

@@ -161,9 +161,18 @@ export default {
     this.draw();
   },
   watch: {
-    polygons() {
+    polygons(newVal) {
       console.log("watch polygons");
+      // if (newVal !== oldVal) {
+      let newIndex = -1;
+      if (newVal) {
+        newIndex = newVal.findIndex((item) => item === this.selectedPolygon);
+      }
+      if (newIndex === -1) {
+        this.updateSelectedPolygonIndex(-1);
+      }
       this.draw();
+      // }
     },
   },
   methods: {
@@ -628,41 +637,45 @@ export default {
 
         // 一.判断是否可以删除点
         let draggedPolygonIndex = null;
-        let draggedPointIndex = null;
-        const r = polygon.points.some((point, pointIndex) => {
-          if (this.pointHitTest(point, x, y)) {
-            draggedPolygonIndex = polygonIndex;
-            draggedPointIndex = pointIndex;
-            return true;
-          }
-          return false;
-        });
-        //
-        if (r && polygon.points.length > 3) {
-          this.$contextmenu({
-            items: [
-              {
-                label: "删除锚点",
-                onClick: () => {
-                  const polygon = this.polygons[draggedPolygonIndex];
-                  polygon.points.splice(draggedPointIndex, 1);
-                  // this.$emit("update:polygons", this.polygons);
-                  this.draw();
-                },
-              },
-            ],
-            event,
-            customClass: "custom-class",
-            zIndex: 3,
-            minWidth: 230,
+        if (this.canAddPoint) {
+          let draggedPointIndex = null;
+          const r = polygon.points.some((point, pointIndex) => {
+            if (this.pointHitTest(point, x, y)) {
+              draggedPolygonIndex = polygonIndex;
+              draggedPointIndex = pointIndex;
+              return true;
+            }
+            return false;
           });
-          break;
+          //
+          if (r && polygon.points.length > 3) {
+            this.$contextmenu({
+              items: [
+                {
+                  label: "删除锚点",
+                  onClick: () => {
+                    const polygon = this.polygons[draggedPolygonIndex];
+                    polygon.points.splice(draggedPointIndex, 1);
+                    // this.$emit("update:polygons", this.polygons);
+                    this.draw();
+                  },
+                },
+              ],
+              event,
+              customClass: "custom-class",
+              zIndex: 9999,
+              minWidth: 230,
+            });
+            break;
+          }
         }
         // 二.判断是否删除图形
         if (pointInPolygon(polygon.points, x, y)) {
           // 前面没找到符合拖动的角，直接赋值用于拖动多边形
           // 设置需要拖动的图形的index
           draggedPolygonIndex = polygonIndex;
+          this.updateSelectedPolygonIndex(draggedPolygonIndex);
+          this.draw();
           this.$contextmenu({
             items: [
               {
@@ -670,7 +683,8 @@ export default {
                 onClick: () => {
                   console.log("删除", draggedPolygonIndex);
                   const newList = this.polygons;
-                  newList.splice(draggedPolygonIndex, 1);
+                  const deleteItem = newList.splice(draggedPolygonIndex, 1);
+                  this.$emit("deletePolygon", deleteItem);
                   // this.$emit("update:polygons", newList);
                   this.draw();
                 },
@@ -678,7 +692,7 @@ export default {
             ],
             event,
             customClass: "custom-class",
-            zIndex: 3,
+            zIndex: 9999,
             minWidth: 230,
           });
           break;
