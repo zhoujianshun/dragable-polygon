@@ -494,32 +494,48 @@ export default {
       this.draggingCornerPoint = false;
       this.draggingWholePolygon = false;
     },
+    // 判断point，到线段的距离，若小于pointToLineMaxDistance，切到两端的距离小于radius，表示符合条件。不符合条件返回-1
+    getPointToLineDistance(point, point1, point2) {
+      const { distance, projection } = pointToLineDistance(
+        point,
+        point1,
+        point2
+      );
+      // 距离小于pointToLineMaxDistance才可添加
+      if (distance < this.pointToLineMaxDistance) {
+        // 点击的点到线段的垂直点，距离线段两端的距离，小于pointToLineMaxDistance才可以添加
+        // 防止添加的点，距离线段两端太近
+        // 添加此判断，也可以避免，点击的点，距离多条边都符合要求的情况
+        if (
+          getLineLength(projection, point1) > this.radius &&
+          getLineLength(projection, point2) > this.radius
+        ) {
+          return projection;
+        }
+      }
+      return -1;
+    },
     // 查找点击点，是否在多边形的边附近，是否符合添加点的条件
     searchAddPointLine(polygon, x, y, polygonIndex) {
       const points = polygon.points;
       for (let index = 0; index < points.length; index++) {
+        if (points.length < 3) {
+          // 两个点的直线
+          continue;
+        }
         const point1 = points[index];
         const point2 = points[(index + 1) % points.length];
-        const { distance, projection } = pointToLineDistance(
+        const projection = this.getPointToLineDistance(
           { x, y },
           point1,
           point2
         );
-        // 距离小于pointToLineMaxDistance才可添加
-        if (distance < this.pointToLineMaxDistance) {
-          // 点击的点到线段的垂直点，距离线段两端的距离，小于pointToLineMaxDistance才可以添加
-          // 防止添加的点，距离线段两端太近
-          // 添加此判断，也可以避免，点击的点，距离多条边都符合要求的情况
-          if (
-            getLineLength(projection, point1) > this.radius &&
-            getLineLength(projection, point2) > this.radius
-          ) {
-            this.addPoint = projection;
-            this.addPointPolygonIndex = polygonIndex;
-            this.addPointPrevIndex = index;
-            // 找到了跳出第一层
-            break;
-          }
+        if (projection !== -1) {
+          this.addPoint = projection;
+          this.addPointPolygonIndex = polygonIndex;
+          this.addPointPrevIndex = index;
+          // 找到了跳出第一层
+          break;
         }
       }
     },
@@ -593,12 +609,29 @@ export default {
         }
         // 三.判断是否点击在多边形内部，用于移动多边形
         if (this.canDragMove) {
-          if (pointInPolygon(polygon.points, x, y)) {
-            // 前面没找到符合拖动的角，直接赋值用于拖动多边形
-            // 设置需要拖动的图形的index
-            this.updateSelectedPolygonIndex(polygonIndex);
-            this.draggingWholePolygon = true;
-            break;
+          // 1.线段，判断点是否在线段上，在线段上移动线段
+          if (polygon.points.length < 3) {
+            if (
+              this.getPointToLineDistance(
+                { x, y },
+                polygon.points[0],
+                polygon.points[1]
+              ) !== -1
+            ) {
+              // 线段，点在线段上的话，移动线段
+              this.draggingWholePolygon = true;
+              this.updateSelectedPolygonIndex(polygonIndex);
+              break;
+            }
+          } else {
+            // 2.判断是否是在多边形内部
+            if (pointInPolygon(polygon.points, x, y)) {
+              // 前面没找到符合拖动的角，直接赋值用于拖动多边形
+              // 设置需要拖动的图形的index
+              this.updateSelectedPolygonIndex(polygonIndex);
+              this.draggingWholePolygon = true;
+              break;
+            }
           }
         }
       }
@@ -637,6 +670,7 @@ export default {
 
         // 一.判断是否可以删除点
         let draggedPolygonIndex = null;
+        // canAddPoint为true表示可以添加点，所以在这里先判断是否可以删除点
         if (this.canAddPoint) {
           let draggedPointIndex = null;
           const r = polygon.points.some((point, pointIndex) => {
@@ -669,35 +703,68 @@ export default {
             break;
           }
         }
-        // 二.判断是否删除图形
-        if (pointInPolygon(polygon.points, x, y)) {
-          // 前面没找到符合拖动的角，直接赋值用于拖动多边形
-          // 设置需要拖动的图形的index
-          draggedPolygonIndex = polygonIndex;
-          this.updateSelectedPolygonIndex(draggedPolygonIndex);
-          this.draw();
-          this.$contextmenu({
-            items: [
-              {
-                label: "删除图形",
-                onClick: () => {
-                  console.log("删除", draggedPolygonIndex);
-                  const newList = this.polygons;
-                  const deleteItem = newList.splice(draggedPolygonIndex, 1);
-                  this.$emit("deletePolygon", deleteItem);
-                  // this.$emit("update:polygons", newList);
-                  this.draw();
-                },
-              },
-            ],
-            event,
-            customClass: "custom-class",
-            zIndex: 9999,
-            minWidth: 230,
-          });
-          break;
+
+        if (polygon.points.length < 3) {
+          //
+          if (
+            this.getPointToLineDistance(
+              { x, y },
+              polygon.points[0],
+              polygon.points[1]
+            ) !== -1
+          ) {
+            // // 线段，点在线段上的话，移动线段
+            // this.draggingWholePolygon = true
+            // this.updateSelectedPolygonIndex(polygonIndex)
+            draggedPolygonIndex = polygonIndex;
+            this.updateSelectedPolygonIndex(draggedPolygonIndex);
+            this.draw();
+            this.showDeleteMenu({
+              event,
+              label: "删除线段",
+              deletePolygonIndex: draggedPolygonIndex,
+            });
+            break;
+          }
+        } else {
+          // 二.判断是否删除图形
+          if (pointInPolygon(polygon.points, x, y)) {
+            // 前面没找到符合拖动的角，直接赋值用于拖动多边形
+            // 设置需要拖动的图形的index
+            draggedPolygonIndex = polygonIndex;
+            this.updateSelectedPolygonIndex(draggedPolygonIndex);
+            this.draw();
+            this.showDeleteMenu({
+              event,
+              label: "删除图形",
+              deletePolygonIndex: draggedPolygonIndex,
+            });
+            break;
+          }
         }
       }
+    },
+    showDeleteMenu(options) {
+      const { label, event, deletePolygonIndex } = options;
+      this.$contextmenu({
+        items: [
+          {
+            label: label ? label : "删除图形",
+            onClick: () => {
+              console.log("删除", deletePolygonIndex);
+              const newList = this.polygons;
+              const deleteItem = newList.splice(deletePolygonIndex, 1);
+              this.$emit("deletePolygon", deleteItem);
+              // this.$emit("update:polygons", newList);
+              this.draw();
+            },
+          },
+        ],
+        event,
+        customClass: "custom-class",
+        zIndex: 9999,
+        minWidth: 230,
+      });
     },
     // 获取polygon样式属性，没有则使用统一设置
     getStyleWithKey(polygon, key) {

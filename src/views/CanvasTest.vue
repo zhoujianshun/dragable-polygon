@@ -7,7 +7,7 @@
       pointFillColor="#1890ff"
       :selectedPolygon="polygons[0]"
       @update:selectedPolygon="onSelectedPolygonChanged"
-      :scaleFactor="2"
+      :scaleFactor="1"
       :polygons="polygons"
       :canvasWidth="600"
       :canvasHeight="600"
@@ -62,6 +62,17 @@ export default {
             // fontSize:20,
             lineDash: [10, 2],
             selectStrokeColor: "green",
+            strokeColor: "red",
+          },
+        },
+        {
+          points: [
+            { x: 120, y: 120 },
+            { x: 200, y: 120 },
+          ],
+          style: {
+            lineWidth: 4,
+            // lineDash: [2, 10],
             strokeColor: "red",
           },
         },
